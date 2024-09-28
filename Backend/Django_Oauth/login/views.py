@@ -1,11 +1,14 @@
 import os
 import requests # Import requests for HTTP requests
 import secrets
+import jwt
+from datetime import datetime, timedelta
 from requests.auth import HTTPBasicAuth # Import for basic HTTP authentication
 from urllib.parse import urlencode
+from django.conf import settings
 
 from django.shortcuts import redirect, render
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
@@ -141,3 +144,108 @@ def callback(request):
         username = user_data["username"],
         defaults = {"email": user_data["email"]} # set the email if creating a new user
     )
+
+    # Step 11: Generate JWT access and refresh tokens
+    access_token, refersh_token = generate_jwt_tokens(user)
+
+    # Step 12: Send the tokens back to the frontend as JSON
+    return JsonResponse({
+        'access_token': access_token,
+        'refresh_token': refersh_token,
+        'email': user.email
+    })
+
+# Generate jwt token
+def generate_jwt_tokens(user):
+    """
+    Generate both access and refresh tokens for the user.
+
+    Args:
+        user: user object
+
+    Returns:
+        access_token, refresh_token: jwt access and refresh token 
+    """
+
+    # Access token - short lived
+    access_token = jwt.encode({
+        'email': user.email,
+        'exp': datetime.utcnow() + timedelta(minutes=15),
+        'iat': datetime.utcnow() # indicates when the token was created
+    }, settings.SECRET_KEY, algorithm='HS256')
+
+    # Refresh token - long lived
+    refresh_token = jwt.encode({
+        'email': user.email,
+        'exp': datetime.utcnow() + timedelta(days=7),
+        'iat': datetime.utcnow() # indicates when the token was created
+    }, settings.SECRET_KEY, algorithm='HS256')
+
+    return access_token, refresh_token
+
+
+# Decode jwt token
+def decode_jwt_token(token):
+    """
+    Decode the JWT token.
+
+    Args:
+        token: The JWT token string to decode
+
+    Returns:
+        dict: The decoded JWT payload
+    """
+
+    try:
+        # Decode the JWT using the same secret key and algorithm
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['H256'])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return {"error": "Token has expired"}
+    except jwt.InvalidTokenError:
+        return {"error": "Invalid token"}
+    
+def decode_view(request):
+    """
+    View to decode JWT token from the request.
+
+    Args:
+        request: The HTTP request object containing the token
+
+    Returns:
+        JsonResponse: Decoded JWT payload or error
+    """
+
+    # check if the token is passed in the Authorization header
+    auth_header = request.headers.get("Authorization")
+    token = None
+
+    if auth_header and auth_header.startswith("Bearer "):
+        # extract the token after the bearer
+        token = auth_header.split(" ")[1]
+
+    # fallback - get the token from query params, if not passed in the header
+    if not token:
+        token = request.GET.get("token")
+
+    if not token:
+        return JsonResponse({"error": "Token is required"}, status = 400)
+
+    decoded_payload = decode_jwt_token(token)
+
+    # extract the user email from the payload
+    user_email = decoded_payload.get("email")
+
+    # look up for the user in the database
+    User = get_user_model()
+    
+    try:
+        user = User.objects.get(email=user_email)
+    except User.DoesNotExist:
+        return {"error": "User not found"}
+    
+    # return user info or token payload for further authorization(allowing post request only to white listed users)
+    return {
+        "email": user.email,
+        "username": user.username,
+    }
