@@ -1,3 +1,5 @@
 django
 requests
-jwt
+PyJWT
+django-cors-headers
+python-dotenv
