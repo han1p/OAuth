@@ -28,8 +28,8 @@ class JWTAuthenticationMiddleware:
                 return JsonResponse({"error": "Unauthorized"}, status = 401)
             
             # Attach the user to the request object
-            request.user = user
-
+            request.username = user.username
+            print("in middleware, before check function")
             # call next middleware or function
             return self.get_response(request)
         
@@ -65,15 +65,15 @@ class JWTAuthenticationMiddleware:
         """
         try:
             # Decode the JWT using the secret key
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms = ["H256"])
-            user_email = payload.get("email")
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms = ["HS256"])
+            username = payload.get("username")
 
             # Retrieve the user from the database
             User = get_user_model()
-            return User.objects.get(email = user_email)
+            return User.objects.get(username = username)
         
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-            return JsonResponse({"error": "Invalid token"}, status = 401)
+            raise Exception("Invalid token")
 
         except User.DoesNotExist:
-            return JsonResponse({"error": "User not found"}, status = 401)
+            raise Exception("User not found")

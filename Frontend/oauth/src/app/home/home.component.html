@@ -1,0 +1,5 @@
+<h1>Welcome Home</h1>
+<p *ngIf="username; else notLoggedIn">Welcome, {{ username }}</p>
+<ng-template #notLoggedIn>
+  <p>You are not logged in.</p>
+</ng-template>

@@ -1,40 +1,50 @@
-import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8000/auth';  // Backend API URL
+  private username: string | null = null;
+  private access_token: string | null = null;
 
-  constructor(private http: HttpClient, private router: Router) {}
+  private apiUrl = 'http://localhost:8000/auth'; // Adjust based on your API URL
 
-  // Initiate OAuth login
-  login() {
-    // Redirects to the backend login page for OAuth
-    window.location.href = `${this.apiUrl}/login/`;  
+  constructor(private http: HttpClient) { }
+
+  // Set the username from a cookie
+  setDataFromCookies() {
+    const cookies = document.cookie.split('; ');
+    const usernameCookie = cookies.find(cookie => cookie.startsWith('username='));
+    const access_token = cookies.find(cookie => cookie.startsWith('access_token='))
+    console.log(access_token)
+
+    if (usernameCookie) {
+      this.username = usernameCookie.split('=')[1];
+    }
+
+    if(access_token){
+      this.access_token = access_token.split("=")[1];
+    }
   }
 
-  // Check if the user is authenticated based on the backend response
-  checkAuth(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/check_authentication/`, { withCredentials: true });  
+  // Get the current username
+  getUsername(): string | null {
+    return this.username;
   }
 
-  // Check if access_token exists locally for UX
-  isAuthenticated(): boolean {
-    return !!localStorage.getItem('access_token');  // Local check for UX improvement
+  // Clear username (for logout)
+  clearUsername() {
+    this.username = null;
   }
 
-  // Logout the user and clear tokens
-  logout() {
-    localStorage.removeItem('access_token');
-    this.router.navigate(['/home']);  // Redirect to home page
+  // Method to check if the user is authenticated
+  checkAuthentication(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/check`, { withCredentials: true });
   }
 
-  // Optionally add a method to retrieve user information
-  getUserInfo(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/user/`, { withCredentials: true });
+  isAuthenticated(){
+    return !! this.access_token;
   }
 }

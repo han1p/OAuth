@@ -25,7 +25,7 @@ load_dotenv(os.path.join(Path(__file__).resolve().parent.parent, '.env'))
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-lq=k!41-@s_za8vvuis(h_^#63p9q-%vdsasuh_a+eh*xqwtg+'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -47,15 +47,15 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'login.middleware.JWTAuthenticationMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'login.middleware.JWTAuthenticationMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'Django_Oauth.urls'
@@ -132,10 +132,12 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Allow CORS for your frontend
-CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4200",  
+    'http://localhost:4200',  # Correctly specify the scheme (http://)
+    'http://localhost',       # Correctly specify the scheme (http://)
 ]
+
+CORS_ALLOW_CREDENTIALS = True  # This allows cookies to be sent with requests
 
 
 # JWT Secret Key

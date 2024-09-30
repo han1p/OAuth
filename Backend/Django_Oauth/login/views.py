@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 
 from django.shortcuts import redirect, render
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 import requests
@@ -92,13 +92,16 @@ def callback(request):
     # Step 11: Generate JWT access and refresh tokens
     access_token, refresh_token = generate_jwt_tokens(user)
 
-    # Step 12: Set tokens as HTTP-only cookies
-    response = JsonResponse({'message': 'Authentication successful'})
+    # Create a redirect response
+    response = HttpResponseRedirect("http://localhost:4200/")
 
-    response.set_cookie('access_token', access_token, httponly=True, secure=True)
-    response.set_cookie('refresh_token', refresh_token, httponly=True, secure=True)
-    
-    return redirect("http://localhost:4200/dashboard")
+    # Step 12: Set tokens as HTTP-only cookies
+    response.set_cookie('access_token', access_token, httponly=True, secure=False)
+    response.set_cookie('refresh_token', refresh_token, httponly=True, secure=False)
+    response.set_cookie('username', user.username)
+
+    # Return the redirect response
+    return response
 
 # Generate jwt token
 def generate_jwt_tokens(user):
@@ -114,14 +117,14 @@ def generate_jwt_tokens(user):
 
     # Access token - short lived
     access_token = jwt.encode({
-        'email': user.email,
+        'username': user.username,
         'exp': datetime.utcnow() + timedelta(minutes=15),
         'iat': datetime.utcnow() # indicates when the token was created
     }, settings.SECRET_KEY, algorithm='HS256')
 
     # Refresh token - long lived
     refresh_token = jwt.encode({
-        'email': user.email,
+        'username': user.username,
         'exp': datetime.utcnow() + timedelta(days=7),
         'iat': datetime.utcnow() # indicates when the token was created
     }, settings.SECRET_KEY, algorithm='HS256')
@@ -131,7 +134,7 @@ def generate_jwt_tokens(user):
 
 # Endpoint to check if the user is authenticated
 def check_authentication(request):
-    if request.user.is_authenticated:
-        return JsonResponse({"authenticated": True, "user": request.user.email})
+    if request.username:
+        return JsonResponse({"authenticated": True, "user": request.username})
     else:
         return JsonResponse({"authenticated": False}, status=401)

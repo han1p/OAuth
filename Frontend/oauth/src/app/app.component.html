@@ -1,4 +1,8 @@
-<!-- app.component.html -->
-<div>
-  <router-outlet></router-outlet>
-</div>
+<nav>
+  <a routerLink="/home">Home</a> |
+  <a routerLink="/dashboard">Dashboard</a> |
+  <a *ngIf="!isLoggedIn" routerLink="/login">Login</a>
+  <span *ngIf="isLoggedIn">{{username}}</span>
+</nav>
+
+<router-outlet></router-outlet>

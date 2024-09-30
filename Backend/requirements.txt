@@ -3,3 +3,4 @@ requests
 PyJWT
 django-cors-headers
 python-dotenv
+django-cors-headers

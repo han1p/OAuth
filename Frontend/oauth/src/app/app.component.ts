@@ -1,28 +1,31 @@
-import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
 import { AuthService } from './auth.service';
 
 @Component({
-    selector: 'app-root',
-    templateUrl: './app.component.html',
-    styleUrls: ['./app.component.css']
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css'
 })
-export class AppComponent {
-    constructor(private authService: AuthService, private router: Router) {
-        // Check if the user is authenticated on app start
-        this.authService.checkAuth().subscribe(
-            (response) => {
-                // Assuming response returns a boolean or a user object
-                if (response.isAuthenticated) {
-                    this.router.navigate(['/dashboard']); // Navigate to dashboard if authenticated
-                } else {
-                    this.router.navigate(['/']); // Otherwise navigate to home
-                }
-            },
-            (error) => {
-                console.error('Error checking authentication:', error);
-                this.router.navigate(['/']); // Navigate to home on error
-            }
-        );
-    }
+export class AppComponent implements OnInit {
+  isLoggedIn: boolean = false;
+  username: string | null = null
+
+  constructor(private authService: AuthService) {}
+
+  ngOnInit() {
+    this.authService.setDataFromCookies();
+    this.username = this.authService.getUsername();
+
+    this.authService.checkAuthentication().subscribe({
+      next: (response) => {
+        this.isLoggedIn = response.authenticated;
+        this.username = response.user; // Assuming the backend returns the username
+      },
+      error: () => {
+        // Handle error - user is not authenticated
+        this.isLoggedIn = false;
+        this.username = null;
+      }
+    });
+  }
 }
