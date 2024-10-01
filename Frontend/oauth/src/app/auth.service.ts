@@ -1,50 +1,36 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { AuthCheckResponse } from './interfaces/authcheck.interface';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private username: string | null = null;
-  private access_token: string | null = null;
 
-  private apiUrl = 'http://localhost:8000/auth'; // Adjust based on your API URL
+  private apiUrl = 'http://localhost:8000/auth'; // API url
+
+  // A behaviour subject to store the user's auth status
+  private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
+  isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
+
+  private usernameSubject = new BehaviorSubject<string | null>(null); // BehaviorSubjects stores latest value and ensures the latest value is always available to anyone who subscribes
+  username$ = this.usernameSubject.asObservable(); // asObservable() turns the Behaviour subject into a read-only
 
   constructor(private http: HttpClient) { }
 
-  // Set the username from a cookie
-  setDataFromCookies() {
-    const cookies = document.cookie.split('; ');
-    const usernameCookie = cookies.find(cookie => cookie.startsWith('username='));
-    const access_token = cookies.find(cookie => cookie.startsWith('access_token='))
-    console.log(access_token)
-
-    if (usernameCookie) {
-      this.username = usernameCookie.split('=')[1];
-    }
-
-    if(access_token){
-      this.access_token = access_token.split("=")[1];
-    }
-  }
-
-  // Get the current username
-  getUsername(): string | null {
-    return this.username;
-  }
-
-  // Clear username (for logout)
-  clearUsername() {
-    this.username = null;
-  }
-
   // Method to check if the user is authenticated
-  checkAuthentication(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/check`, { withCredentials: true });
-  }
-
-  isAuthenticated(){
-    return !! this.access_token;
+  checkAuthentication(): Observable<AuthCheckResponse> {
+    return this.http.get<AuthCheckResponse>(`${this.apiUrl}/check`, { withCredentials: true }).pipe(
+      tap(response => {
+        if(response.authenticated){
+          this.isAuthenticatedSubject.next(true);
+          this.usernameSubject.next(response.username);
+        } else{
+          this.isAuthenticatedSubject.next(false);
+          this.usernameSubject.next(null);
+        }
+      })
+    );
   }
 }

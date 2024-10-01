@@ -1,30 +1,33 @@
 import { Component, OnInit } from '@angular/core';
-import { AuthService } from './auth.service';
+import { AuthService } from './auth.service'; // Adjust the path as needed
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  isLoggedIn: boolean = false;
-  username: string | null = null
+  isAuthenticated: boolean = false; // Local variable for authentication status
+  username: string | null = null; // Local variable for username
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
-  ngOnInit() {
-    this.authService.setDataFromCookies();
-    this.username = this.authService.getUsername();
-
+  ngOnInit(): void {
+    // Call checkAuthentication() to fetch the initial authentication status
     this.authService.checkAuthentication().subscribe({
-      next: (response) => {
-        this.isLoggedIn = response.authenticated;
-        this.username = response.user; // Assuming the backend returns the username
+      next: () => {
+        // After the initial check, subscribe to the BehaviorSubjects for ongoing updates
+        this.authService.isAuthenticated$.subscribe(isAuthenticated => {
+          this.isAuthenticated = isAuthenticated; // Update local variable on change
+        });
+
+        this.authService.username$.subscribe(username => {
+          this.username = username; // Update local variable on change
+        });
       },
-      error: () => {
-        // Handle error - user is not authenticated
-        this.isLoggedIn = false;
-        this.username = null;
+      error: (err) => {
+        console.error('Error checking authentication:', err);
       }
     });
   }

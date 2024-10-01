@@ -98,7 +98,6 @@ def callback(request):
     # Step 12: Set tokens as HTTP-only cookies
     response.set_cookie('access_token', access_token, httponly=True, secure=False)
     response.set_cookie('refresh_token', refresh_token, httponly=True, secure=False)
-    response.set_cookie('username', user.username)
 
     # Return the redirect response
     return response
@@ -134,7 +133,7 @@ def generate_jwt_tokens(user):
 
 # Endpoint to check if the user is authenticated
 def check_authentication(request):
-    if request.username:
-        return JsonResponse({"authenticated": True, "user": request.username})
+    if request.userobj:
+        return JsonResponse({"authenticated": True, "username": request.userobj.username})
     else:
         return JsonResponse({"authenticated": False}, status=401)

@@ -22,14 +22,13 @@ class JWTAuthenticationMiddleware:
         else:
             # Decode the token
             user = self.authenticate_user(token)
-
             if user is None:
                 # respond with an error if token is invalif or user doesn't exist
                 return JsonResponse({"error": "Unauthorized"}, status = 401)
             
             # Attach the user to the request object
-            request.username = user.username
-            print("in middleware, before check function")
+            request.userobj = user
+
             # call next middleware or function
             return self.get_response(request)
         
@@ -70,7 +69,9 @@ class JWTAuthenticationMiddleware:
 
             # Retrieve the user from the database
             User = get_user_model()
-            return User.objects.get(username = username)
+            # print("User object:", User.objects.get(username = username))                # Will call __str__ and print username
+            return User.objects.get(username = username) # returns username because of __str__
+            
         
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
             raise Exception("Invalid token")

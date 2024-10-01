@@ -12,8 +12,7 @@ export class HomeComponent implements OnInit {
   constructor(private authService: AuthService) {}
 
   ngOnInit() {
-    this.authService.setDataFromCookies();
-    this.username = this.authService.getUsername();
+    this.authService.username$.subscribe(username => this.username = username)
   }
 
 }
